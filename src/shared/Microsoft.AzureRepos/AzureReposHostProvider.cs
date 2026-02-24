@@ -386,6 +386,18 @@ namespace Microsoft.AzureRepos
                 return redirectUri;
             }
 
+            // On macOS, the broker requires a specific redirect URI for unsigned apps
+            if (PlatformUtils.IsMacOS() &&
+                _context.Settings.TryGetSetting(
+                    Constants.EnvironmentVariables.MsAuthUseBroker,
+                    Constants.GitConfiguration.Credential.SectionName,
+                    Constants.GitConfiguration.Credential.MsAuthUseBroker,
+                    out string brokerValue) &&
+                brokerValue.ToBooleanyOrDefault(false))
+            {
+                return AzureDevOpsConstants.AadMacBrokerRedirectUri;
+            }
+
             return AzureDevOpsConstants.AadRedirectUri;
         }
 

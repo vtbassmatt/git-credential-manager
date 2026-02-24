@@ -18,6 +18,9 @@ namespace Microsoft.AzureRepos
         // Redirect URI specified by the Visual Studio application configuration
         public static readonly Uri AadRedirectUri = new Uri("http://localhost");
 
+        // Redirect URI required for the macOS broker (unsigned executable)
+        public static readonly Uri AadMacBrokerRedirectUri = new Uri("msauth.com.msauth.unsignedapp://auth");
+
         public const string VstsHostSuffix = ".visualstudio.com";
         public const string AzureDevOpsHost = "dev.azure.com";
 
