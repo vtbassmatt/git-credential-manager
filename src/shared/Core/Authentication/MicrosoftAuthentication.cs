@@ -15,10 +15,7 @@ using GitCredentialManager.UI.Controls;
 using GitCredentialManager.UI.ViewModels;
 using GitCredentialManager.UI.Views;
 using Microsoft.Identity.Client.AppConfig;
-
-#if NETFRAMEWORK
 using Microsoft.Identity.Client.Broker;
-#endif
 
 namespace GitCredentialManager.Authentication
 {
@@ -166,6 +163,9 @@ namespace GitCredentialManager.Authentication
                 // show the most appropriate authentication interface:
                 //
                 // On Windows 10+ & .NET Framework, MSAL supports the Web Account Manager (WAM) broker - we try to use
+                // that if possible in the first instance.
+                //
+                // On macOS, MSAL supports the Microsoft Enterprise SSO broker via Company Portal - we try to use
                 // that if possible in the first instance.
                 //
                 // On .NET Framework MSAL supports the WinForms based 'embedded' webview UI. This experience is less
@@ -504,19 +504,27 @@ namespace GitCredentialManager.Authentication
             }
 
             // Configure the broker if enabled
-            // Currently only supported on Windows so only included in the .NET Framework builds
-            // to save on the distribution size of the .NET builds (no need for MSALRuntime bits).
             if (enableBroker)
             {
+                BrokerOptions.OperatingSystems brokerOs = BrokerOptions.OperatingSystems.None;
 #if NETFRAMEWORK
-                appBuilder.WithBroker(
-                    new BrokerOptions(BrokerOptions.OperatingSystems.Windows)
-                    {
-                        Title = "Git Credential Manager",
-                        MsaPassthrough = msaPt,
-                    }
-                );
+                brokerOs = BrokerOptions.OperatingSystems.Windows;
+#else
+                if (PlatformUtils.IsMacOS())
+                {
+                    brokerOs = BrokerOptions.OperatingSystems.OSX;
+                }
 #endif
+                if (brokerOs != BrokerOptions.OperatingSystems.None)
+                {
+                    appBuilder.WithBroker(
+                        new BrokerOptions(brokerOs)
+                        {
+                            Title = "Git Credential Manager",
+                            MsaPassthrough = msaPt,
+                        }
+                    );
+                }
             }
 
             IPublicClientApplication app = appBuilder.Build();
@@ -851,7 +859,21 @@ namespace GitCredentialManager.Authentication
 
             return defaultValue;
 #else
-            // OS broker requires .NET Framework right now until we migrate to .NET 5.0 (net5.0-windows10.x.y.z)
+            // macOS broker is supported via Microsoft Company Portal / Enterprise SSO plug-in
+            if (PlatformUtils.IsMacOS() && Context.SessionManager.IsDesktopSession)
+            {
+                if (Context.Settings.TryGetSetting(Constants.EnvironmentVariables.MsAuthUseBroker,
+                        Constants.GitConfiguration.Credential.SectionName,
+                        Constants.GitConfiguration.Credential.MsAuthUseBroker,
+                        out string valueStr))
+                {
+                    return valueStr.ToBooleanyOrDefault(false);
+                }
+
+                return false;
+            }
+
+            // OS broker is not available on other platforms
             return false;
 #endif
         }

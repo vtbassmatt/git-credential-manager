@@ -29,6 +29,78 @@ namespace GitCredentialManager.Tests.Authentication
                 () => msAuth.GetTokenForUserAsync(authority, clientId, redirectUri, scopes, userName, false));
         }
 
+        #region CanUseBroker (macOS)
+
+        [MacOSFact]
+        public void MicrosoftAuthentication_CanUseBroker_MacOS_DefaultSetting_ReturnsFalse()
+        {
+            var context = new TestCommandContext
+            {
+                SessionManager = { IsDesktopSession = true },
+            };
+
+            var msAuth = new MicrosoftAuthentication(context);
+
+            Assert.False(msAuth.CanUseBroker());
+        }
+
+        [MacOSFact]
+        public void MicrosoftAuthentication_CanUseBroker_MacOS_EnabledViaEnvar_ReturnsTrue()
+        {
+            var context = new TestCommandContext
+            {
+                SessionManager = { IsDesktopSession = true },
+            };
+            context.Environment.Variables[Constants.EnvironmentVariables.MsAuthUseBroker] = "true";
+
+            var msAuth = new MicrosoftAuthentication(context);
+
+            Assert.True(msAuth.CanUseBroker());
+        }
+
+        [MacOSFact]
+        public void MicrosoftAuthentication_CanUseBroker_MacOS_EnabledViaConfig_ReturnsTrue()
+        {
+            var context = new TestCommandContext();
+            context.SessionManager.IsDesktopSession = true;
+            context.Git.Configuration.Global[$"{Constants.GitConfiguration.Credential.SectionName}.{Constants.GitConfiguration.Credential.MsAuthUseBroker}"]
+                = new[] { "true" };
+
+            var msAuth = new MicrosoftAuthentication(context);
+
+            Assert.True(msAuth.CanUseBroker());
+        }
+
+        [MacOSFact]
+        public void MicrosoftAuthentication_CanUseBroker_MacOS_ExplicitlyDisabled_ReturnsFalse()
+        {
+            var context = new TestCommandContext
+            {
+                SessionManager = { IsDesktopSession = true },
+            };
+            context.Environment.Variables[Constants.EnvironmentVariables.MsAuthUseBroker] = "false";
+
+            var msAuth = new MicrosoftAuthentication(context);
+
+            Assert.False(msAuth.CanUseBroker());
+        }
+
+        [MacOSFact]
+        public void MicrosoftAuthentication_CanUseBroker_MacOS_NoDesktopSession_ReturnsFalse()
+        {
+            var context = new TestCommandContext
+            {
+                SessionManager = { IsDesktopSession = false },
+            };
+            context.Environment.Variables[Constants.EnvironmentVariables.MsAuthUseBroker] = "true";
+
+            var msAuth = new MicrosoftAuthentication(context);
+
+            Assert.False(msAuth.CanUseBroker());
+        }
+
+        #endregion
+
         [Theory]
         [InlineData(null)]
         [InlineData("")]

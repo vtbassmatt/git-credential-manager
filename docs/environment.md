@@ -867,7 +867,9 @@ These defaults are subject to change in the future.
 
 _**Note:** before you enable this option on Windows, please
 [review the details][windows-broker] about what this means to your local Windows
-user account._
+user account. On macOS, the broker uses the
+[Microsoft Enterprise SSO plug-in][macos-broker] via the Microsoft Company Portal
+app. The device must be enrolled with Company Portal for the broker to function._
 
 Value|Description
 -|-
@@ -883,7 +885,7 @@ SET GCM_MSAUTH_USEBROKER="true"
 #### macOS/Linux
 
 ```bash
-export GCM_MSAUTH_USEBROKER="false"
+export GCM_MSAUTH_USEBROKER="true"
 ```
 
 **Also see: [credential.msauthUseBroker][credential-msauth-usebroker]**
@@ -1233,6 +1235,7 @@ Defaults to disabled.
 [trace2-performance-docs]: https://git-scm.com/docs/api-trace2#_the_performance_format_target
 [trace2-performance-config]: configuration.md#trace2perfTarget
 [windows-broker]: windows-broker.md
+[macos-broker]: https://learn.microsoft.com/en-us/entra/identity-platform/apple-sso-plugin
 [service-principal]: https://docs.microsoft.com/en-us/azure/active-directory/develop/app-objects-and-service-principals
 [azrepos-sp-mid]: https://learn.microsoft.com/en-us/azure/devops/integrate/get-started/authentication/service-principal-managed-identity
 [gcm-azrepos-sp]: #gcm_azrepos_service_principal
