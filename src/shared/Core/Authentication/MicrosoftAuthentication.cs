@@ -203,11 +203,25 @@ namespace GitCredentialManager.Authentication
                         if (result is null)
                         {
                             Context.Trace.WriteLine("Performing interactive auth with broker...");
-                            result = await app.AcquireTokenInteractive(scopes)
-                                .WithPrompt(Prompt.SelectAccount)
-                                // We must configure the system webview as a fallback
-                                .WithSystemWebViewOptions(GetSystemWebViewOptions())
-                                .ExecuteAsync();
+
+                            // On macOS the broker requires interactive calls to be
+                            // initiated on the main thread.
+                            if (PlatformUtils.IsMacOS())
+                            {
+                                result = await Dispatcher.MainThread.InvokeAsync(() =>
+                                    app.AcquireTokenInteractive(scopes)
+                                        .WithPrompt(Prompt.SelectAccount)
+                                        .WithSystemWebViewOptions(GetSystemWebViewOptions())
+                                        .ExecuteAsync());
+                            }
+                            else
+                            {
+                                result = await app.AcquireTokenInteractive(scopes)
+                                    .WithPrompt(Prompt.SelectAccount)
+                                    // We must configure the system webview as a fallback
+                                    .WithSystemWebViewOptions(GetSystemWebViewOptions())
+                                    .ExecuteAsync();
+                            }
                         }
                     }
                     else

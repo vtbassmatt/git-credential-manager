@@ -83,6 +83,19 @@ namespace GitCredentialManager.UI
             return tcs.Task;
         }
 
+        /// <summary>
+        /// Post async work to be initiated on the thread associated with this dispatcher
+        /// and return a task that completes when the async work completes. The async work
+        /// is started on the dispatcher thread but may complete on any thread.
+        /// </summary>
+        /// <param name="asyncWork">Async work to be initiated on the dispatcher thread.</param>
+        public Task<TResult> InvokeAsync<TResult>(Func<Task<TResult>> asyncWork)
+        {
+            var tcs = new TaskCompletionSource<TResult>();
+            _queue.AddJob(new DispatcherAsyncJob<TResult>(asyncWork, tcs));
+            return tcs.Task;
+        }
+
         private interface IDispatcherJob
         {
             void Execute(CancellationToken ct);
@@ -121,6 +134,33 @@ namespace GitCredentialManager.UI
             {
                 TResult result = _work(ct);
                 _tcs?.SetResult(result);
+            }
+        }
+
+        private class DispatcherAsyncJob<TResult> : IDispatcherJob
+        {
+            private readonly Func<Task<TResult>> _work;
+            private readonly TaskCompletionSource<TResult> _tcs;
+
+            public DispatcherAsyncJob(Func<Task<TResult>> work, TaskCompletionSource<TResult> tcs)
+            {
+                _work = work;
+                _tcs = tcs;
+            }
+
+            public void Execute(CancellationToken ct)
+            {
+                // Initiate async work on the dispatcher thread; completion may
+                // happen on any thread. This avoids blocking the dispatcher loop.
+                _work().ContinueWith(t =>
+                {
+                    if (t.IsFaulted)
+                        _tcs.SetException(t.Exception!.InnerExceptions);
+                    else if (t.IsCanceled)
+                        _tcs.SetCanceled();
+                    else
+                        _tcs.SetResult(t.Result);
+                }, TaskScheduler.Default);
             }
         }
 
